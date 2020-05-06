@@ -686,7 +686,7 @@ private:
 	void controlMagFusion();
 	void updateMagFilter();
 
-	bool canRunMagFusion() const;
+	bool shouldRunMagFusion() const;
 
 	void checkHaglYawResetReq();
 	float getTerrainVPos() const;
