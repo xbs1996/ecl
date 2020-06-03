@@ -110,11 +110,13 @@ void Ekf::runTerrainEstimator()
 		_terrain_var = math::constrain(_terrain_var, 0.0f, 1e4f);
 
 		// Fuse range finder data if available
-		if (_range_sensor.isDataHealthy()) {
+		if ((_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder)
+		    && _range_sensor.isDataHealthy()) {
 			fuseHagl();
 		}
 
-		if (_flow_for_terrain_data_ready) {
+		if ((_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseOpticalFlow)
+		    && _flow_for_terrain_data_ready) {
 			fuseFlowForTerrain();
 			_flow_for_terrain_data_ready = false;
 		}
@@ -281,6 +283,8 @@ bool Ekf::isTerrainEstimateValid() const
 
 void Ekf::updateTerrainValidity()
 {
+	const bool rng_selected = _params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder;
+	const bool flow_selected = _params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseOpticalFlow;
 	// we have been fusing range finder measurements in the last 5 seconds
 	const bool recent_range_fusion = isRecent(_time_last_hagl_fuse, (uint64_t)5e6);
 
@@ -291,8 +295,10 @@ void Ekf::updateTerrainValidity()
 
 	_hagl_valid = (_terrain_initialised && (recent_range_fusion || recent_flow_for_terrain_fusion));
 
-	_hagl_sensor_status.flags.range_finder = recent_range_fusion && (_time_last_fake_hagl_fuse != _time_last_hagl_fuse);
-	_hagl_sensor_status.flags.flow = recent_flow_for_terrain_fusion;
+	_hagl_sensor_status.flags.range_finder = rng_selected
+						 && recent_range_fusion
+						 && (_time_last_fake_hagl_fuse != _time_last_hagl_fuse);
+	_hagl_sensor_status.flags.flow = flow_selected && recent_flow_for_terrain_fusion;
 }
 
 // get the estimated vertical position of the terrain relative to the NED origin
